@@ -4,25 +4,25 @@
 <!-- MarkdownTOC autolink="true" levels="1,2,3,4" -->
 
 - [Identify differentially expressed genes between HF conditions](#identify-differentially-expressed-genes-between-hf-conditions)
-    - [Canine](#canine)
-        - [Set R inputs](#set-r-inputs)
-        - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo)
-        - [Create counts data frame](#create-counts-data-frame)
-            - [Create TPM data frame](#create-tpm-data-frame)
-            - [Set group levels](#set-group-levels)
-            - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally)
-    - [Tick](#tick)
-        - [Set R inputs](#set-r-inputs-1)
-            - [Load R functions](#load-r-functions)
-        - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo-1)
-        - [Create counts data frame](#create-counts-data-frame-1)
-        - [Create TPM data frame](#create-tpm-data-frame-1)
-        - [Set group levels](#set-group-levels-1)
-        - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally-1)
-        - [Plot a heatmap of the up- and down-regulated genes](#plot-a-heatmap-of-the-up--and-down-regulated-genes)
-            - [Create z-score log2TPM legend](#create-z-score-log2tpm-legend)
-            - [Plot heatmap](#plot-heatmap)
-        - [Conduct functional term enrichment analysis on up- and down-regulated gene subsets](#conduct-functional-term-enrichment-analysis-on-up--and-down-regulated-gene-subsets)
+  - [Canine](#canine)
+    - [Set R inputs](#set-r-inputs)
+    - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo)
+    - [Create counts data frame](#create-counts-data-frame)
+      - [Create TPM data frame](#create-tpm-data-frame)
+      - [Set group levels](#set-group-levels)
+      - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally)
+  - [Tick](#tick)
+    - [Set R inputs](#set-r-inputs-1)
+      - [Load R functions](#load-r-functions)
+    - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo-1)
+    - [Create counts data frame](#create-counts-data-frame-1)
+    - [Create TPM data frame](#create-tpm-data-frame-1)
+    - [Set group levels](#set-group-levels-1)
+    - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally-1)
+    - [Plot a heatmap of the up- and down-regulated genes](#plot-a-heatmap-of-the-up--and-down-regulated-genes)
+      - [Create z-score log2TPM legend](#create-z-score-log2tpm-legend)
+      - [Plot heatmap](#plot-heatmap)
+    - [Conduct functional term enrichment analysis on up- and down-regulated gene subsets](#conduct-functional-term-enrichment-analysis-on-up--and-down-regulated-gene-subsets)
 
 <!-- /MarkdownTOC -->
 
@@ -368,15 +368,15 @@ rownames(FDR) <- rownames(qlf$table)
 FDR.genes <- rownames(FDR[FDR[,1] < FDRcutoff, , drop = F])
 print(paste0(length(FDR.genes)," DE genes identified using edgeR pairwise" ))
 
-print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] > 0) == T)," genes significantly upregulated in ",groups[2,4]))
-print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] < 0) == T)," genes significantly downregulated in ",groups[2,4]))
+print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] > 0) == T)," genes significantly upregulated in ",groups[1,4]))
+print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] < 0) == T)," genes significantly downregulated in ",groups[1,4]))
 ```
 
 ```{R, eval = F}
 [1] "13191 genes excluded with CPM cutoff"
 [1] "1793 DE genes identified using edgeR pairwise"
-[1] "975 genes significantly upregulated in ISE6"
-[1] "818 genes significantly downregulated in ISE6"
+[1] "975 genes significantly upregulated in HF"
+[1] "818 genes significantly downregulated in HF"
 ```
 
 ### Plot a heatmap of the up- and down-regulated genes
