@@ -3,17 +3,51 @@
 # Table of Contents
 <!-- MarkdownTOC autolink="true" levels="1,2,3,4" -->
 
+- [Conduct species delineation analyses](#conduct-species-delineation-analyses)
+    - [Create accession list](#create-accession-list)
+  - [Compare ANI values between the Ehrlichia genomes](#compare-ani-values-between-the-ehrlichia-genomes)
+    - [Calculate ANI values using OrthoANIu](#calculate-ani-values-using-orthoaniu)
+    - [Process OrthoANIu output into a sequence identity matrix](#process-orthoaniu-output-into-a-sequence-identity-matrix)
+    - [Plot heatmap for ANI analysis](#plot-heatmap-for-ani-analysis)
+      - [Set R inputs](#set-r-inputs)
+      - [Load R functions](#load-r-functions)
+      - [Load R packages and view sessionInfo](#load-r-packages-and-view-sessioninfo)
+      - [Construct ANI sequence identity matrix](#construct-ani-sequence-identity-matrix)
+      - [Set row and column order](#set-row-and-column-order)
+      - [Plot ANI heatmap](#plot-ani-heatmap)
+  - [Compare dDDH values between the Ehrlichia genomes](#compare-dddh-values-between-the-ehrlichia-genomes)
+    - [Calculate dDDH values using the online webservice http://ggdc.dsmz.de/](#calculate-dddh-values-using-the-online-webservice-httpggdcdsmzde)
+    - [Manually construct dDDH sequence identity matrix](#manually-construct-dddh-sequence-identity-matrix)
+    - [Plot heatmap for dDDH analysis](#plot-heatmap-for-dddh-analysis)
+      - [Set R inputs](#set-r-inputs-1)
+      - [Load R functions](#load-r-functions-1)
+      - [Load R packages and view sessionInfo](#load-r-packages-and-view-sessioninfo-1)
+      - [Construct dDDH sequence identity matrix](#construct-dddh-sequence-identity-matrix)
+      - [Set row and column order](#set-row-and-column-order-1)
+      - [Plot dDDH heatmap](#plot-dddh-heatmap)
+  - [Compare CGASI values between the Ehrlichia genomes](#compare-cgasi-values-between-the-ehrlichia-genomes)
+    - [Conduct core genome alignment using Mugsy](#conduct-core-genome-alignment-using-mugsy)
+    - [Constructs core genome alignment fasta using only LCBs found in all genomes](#constructs-core-genome-alignment-fasta-using-only-lcbs-found-in-all-genomes)
+    - [Removes all positions not present in all genomes used for core genome construction](#removes-all-positions-not-present-in-all-genomes-used-for-core-genome-construction)
+    - [Plot heatmap for CGASI analysis](#plot-heatmap-for-cgasi-analysis)
+      - [Set R inputs](#set-r-inputs-2)
+      - [Load R functions](#load-r-functions-2)
+      - [Load R packages and view sessionInfo](#load-r-packages-and-view-sessioninfo-2)
+      - [Construct CGASI sequence identity matrix](#construct-cgasi-sequence-identity-matrix)
+      - [Set row and column order](#set-row-and-column-order-2)
+      - [Plot CGASI heatmap](#plot-cgasi-heatmap)
+    - [Plot tree from core genome alignment using IQTree](#plot-tree-from-core-genome-alignment-using-iqtree)
 - [Identify differentially expressed genes between HF conditions](#identify-differentially-expressed-genes-between-hf-conditions)
   - [Canine](#canine)
-    - [Set R inputs](#set-r-inputs)
+    - [Set R inputs](#set-r-inputs-3)
     - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo)
     - [Create counts data frame](#create-counts-data-frame)
       - [Create TPM data frame](#create-tpm-data-frame)
       - [Set group levels](#set-group-levels)
       - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally)
   - [Tick](#tick)
-    - [Set R inputs](#set-r-inputs-1)
-      - [Load R functions](#load-r-functions)
+    - [Set R inputs](#set-r-inputs-4)
+      - [Load R functions](#load-r-functions-3)
     - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo-1)
     - [Create counts data frame](#create-counts-data-frame-1)
     - [Create TPM data frame](#create-tpm-data-frame-1)
@@ -25,6 +59,574 @@
     - [Conduct functional term enrichment analysis on up- and down-regulated gene subsets](#conduct-functional-term-enrichment-analysis-on-up--and-down-regulated-gene-subsets)
 
 <!-- /MarkdownTOC -->
+
+# Conduct species delineation analyses
+
+```{bash, eval = F}
+JAVA_BIN_DIR=/usr/bin
+
+IQTREE_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/iqtree-1.6.2-Linux/bin
+MOTHUR_BIN_DIR=/usr/local/packages/mothur-1.40.4
+MUGSY_BIN_DIR=/local/projects-t3/EBMAL/mchung_dir/mugsy_test/mugsy_x86-64-v1r2.2
+ORTHOANIU_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/OrthoANIu_v1.2
+USEARCH_BIN_DIR=/usr/local/packages/usearch-9.2.64/bin
+```
+
+```{bash, eval = F}
+WORKING_DIR=/local/projects-t3/EBMAL/mchung_dir/ehrlichia_hf
+```
+
+```{bash, eval = F}
+mkdir -p "$WORKING_DIR"/references
+mkdir -p "$WORKING_DIR"/ani
+mkdir -p "$WORKING_DIR"/cgasi
+mkdir -p "$WORKING_DIR"/dddh
+mkdir -p "$WORKING_DIR"/plots
+```
+
+```{bash, eval = F}
+wget -O "$WORKING_DIR"/references/NZ_CP007474.1.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/632/845/GCA_000632845.1_ASM63284v1/GCA_000632845.1_ASM63284v1_genomic.fna.gz
+wget -O "$WORKING_DIR"/references/NC_007799.1.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/013/145/GCA_000013145.1_ASM1314v1/GCA_000013145.1_ASM1314v1_genomic.fna.gz
+wget -O "$WORKING_DIR"/references/NC_023063.1.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/508/225/GCA_000508225.1_ASM50822v1/GCA_000508225.1_ASM50822v1_genomic.fna.gz
+wget -O "$WORKING_DIR"/references/LANU01000000.fna.gz  ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/964/755/GCA_000964755.1_ASM96475v1/GCA_000964755.1_ASM96475v1_genomic.fna.gz
+wget -O "$WORKING_DIR"/references/NC_007354.1.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/012/565/GCA_000012565.1_ASM1256v1/GCA_000012565.1_ASM1256v1_genomic.fna.gz
+wget -O "$WORKING_DIR"/references/NC_005295.2.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/026/005/GCA_000026005.1_ASM2600v1/GCA_000026005.1_ASM2600v1_genomic.fna.gz
+wget -O "$WORKING_DIR"/references/NC_006831.1.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/050/405/GCA_000050405.1_ASM5040v1/GCA_000050405.1_ASM5040v1_genomic.fna.gz
+```
+
+```{bash, eval = F}
+gunzip "$WORKING_DIR"/references/*gz
+```
+
+### Create accession list
+
+##### Commands
+```{bash, eval = F}
+vim "$WORKING_DIR"/accessions.list
+```
+
+```{bash, eval = F}
+NZ_CP007474.1
+NC_007799.1
+NC_023063.1
+NZ_LANU01000001
+NC_007354.1
+NC_005295.2
+NC_006831.1
+```
+
+## Compare ANI values between the Ehrlichia genomes
+
+### Calculate ANI values using OrthoANIu
+
+##### Inputs
+```{bash, eval = F}
+THREADS=4
+FASTA_DIR="$WORKING_DIR"/references/
+OUTPUT_DIR="$WORKING_DIR"/ani
+```
+
+##### Commands
+```{bash, eval = F}
+"$JAVA_BIN_DIR"/java -jar "$ORTHOANIU_BIN_DIR"/OAU.jar -fd "$FASTA_DIR" -fmt matrix -n "$THREADS" -o "$OUTPUT_DIR"/ani.tsv -u "$USEARCH_BIN_DIR"/usearch
+```
+
+### Process OrthoANIu output into a sequence identity matrix
+
+##### Inputs
+```{bash, eval = F}
+ORTHOANIU_OUTPUT="$OUTPUT_DIR"/ani.tsv
+```
+
+##### Commands
+```{bash, eval = F}
+grep -B 99999 "# OrthoANIu results as matrix" "$ORTHOANIU_OUTPUT" | tail -n+3 | head -n-4 | cut -f2 | sed "s/[.]fna//g" > "$(dirname "$ORTHOANIU_OUTPUT")"/temp1
+grep -A 99999 "# OrthoANIu results as matrix" "$ORTHOANIU_OUTPUT" | tail -n+3 | head -n-1 | cut -f2- > "$(dirname "$ORTHOANIU_OUTPUT")"/temp2
+paste "$(dirname "$ORTHOANIU_OUTPUT")"/temp1 "$(dirname "$ORTHOANIU_OUTPUT")"/temp2 > "$ORTHOANIU_OUTPUT"
+rm "$(dirname "$ORTHOANIU_OUTPUT")"/temp1
+rm "$(dirname "$ORTHOANIU_OUTPUT")"/temp2
+```
+
+### Plot heatmap for ANI analysis
+
+#### Set R inputs
+```{R}
+WORKING.DIR <- "Z:/EBMAL/mchung_dir/ehrlichia_hf/"
+ORTHOANIU_OUTPUT.PATH <- "Z:/EBMAL/mchung_dir/ehrlichia_hf/ani/ani.tsv"
+```
+
+#### Load R functions
+```{R}
+formalize_sample_names <- function(x){
+  x <- gsub("NZ_CP007474.1", "Ehrlichia sp. HF", x)
+  x <- gsub("NC_007799.1", "E. chaffeensis Arkansas", x)
+  x <- gsub("NC_023063.1", "E. muris AS145", x)
+  x <- gsub("LANU01000000", "E. muris subsp. eauclairensis Wisconsin", x)
+  x <- gsub("NC_007354.1", "E. canis Jake", x)
+  x <- gsub("NC_005295.2", "E. ruminantium Welgevonden", x)
+  x <- gsub("NC_006831.1", "E. ruminantium Gardel", x)
+}
+```
+
+#### Load R packages and view sessionInfo
+```{R}
+require(Biostrings)
+require(ggplot2)
+require(pvclust)
+require(reshape)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.0 (2018-04-23)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 18362)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] reshape_0.8.8       Biostrings_2.50.2   XVector_0.22.0      IRanges_2.16.0      S4Vectors_0.20.1    BiocGenerics_0.28.0
+ [7] RCurl_1.95-4.12     bitops_1.0-6        pvclust_2.0-0       gridExtra_2.3       ggplot2_3.2.0       gplots_3.0.1.1     
+[13] edgeR_3.24.3        limma_3.38.3        dendextend_1.12.0  
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.2         plyr_1.8.4         pillar_1.4.2       compiler_3.5.0     zlibbioc_1.28.0    viridis_0.5.1      tools_3.5.0       
+ [8] digest_0.6.20      tibble_2.1.3       gtable_0.3.0       viridisLite_0.3.0  lattice_0.20-35    pkgconfig_2.0.2    rlang_0.4.0       
+[15] rstudioapi_0.10    yaml_2.2.0         xfun_0.8           withr_2.1.2        dplyr_0.8.3        knitr_1.23         gtools_3.8.1      
+[22] caTools_1.17.1.2   locfit_1.5-9.1     grid_3.5.0         tidyselect_0.2.5   glue_1.3.1         R6_2.4.0           gdata_2.18.0      
+[29] purrr_0.3.2        magrittr_1.5       splines_3.5.0      scales_1.0.0       assertthat_0.2.1   colorspace_1.4-1   labeling_0.3      
+[36] KernSmooth_2.23-15 lazyeval_0.2.2     munsell_0.5.0      crayon_1.3.4
+```
+
+#### Construct ANI sequence identity matrix
+
+```{R}
+sim <- read.delim(ORTHOANIU_OUTPUT.PATH, header = F, row.names = 1)
+colnames(sim) <- rownames(sim)
+```
+
+#### Set row and column order
+
+```{R}
+rownames(sim) <- formalize_sample_names(rownames(sim))
+colnames(sim) <- formalize_sample_names(colnames(sim))
+
+levels <- pvclust(sim, nboot=5)
+levels <- rownames(sim)[levels$hclust$order]
+```
+
+#### Plot ANI heatmap
+
+```{R, fig.height=5,fig.width=6}
+sim <- sim[match(levels,rownames(sim)),match(levels,colnames(sim))]
+sim[lower.tri(sim)] <- NA
+
+plot.df <- as.data.frame(cbind(rownames(sim),
+                               sim))
+names(plot.df)[1] <- "temp"
+plot.df <- melt(plot.df,id.vars="temp", na.rm=T)
+colnames(plot.df) <- c("Var1", "Var2", "value")
+plot.df$Var1 <- factor(plot.df$Var1, levels=levels)
+plot.df$Var2 <- factor(plot.df$Var2, levels=rev(levels))
+
+ani.hm <- ggplot(data = plot.df, aes(Var1, Var2, fill = value))+
+  geom_tile(color = "black")+
+  geom_text(aes(label = ifelse(value>=0, round(value, 1), "")), size = 3)+
+  scale_fill_gradientn(colors = colorRampPalette(c("blue","darkturquoise","darkgreen","green","yellow","red"))(11),
+                       limits=c(75,100))+
+  theme_minimal()+
+  labs(x="",y="",fill="ANI")+
+  #guides(fill = F)+
+  theme(axis.text.x = element_text(angle = 90,vjust = 0.5, hjust = 1,size=8),
+        axis.text.y = element_text(size=8),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+pdf(paste0(WORKING.DIR,"/plots/ani.pdf"),
+    height=5,
+    width=6)
+print(ani.hm)
+dev.off()
+
+png(paste0(WORKING.DIR,"/plots/ani.png"),
+    height=5,
+    width=6,
+    units = "in",res=300)
+print(ani.hm)
+dev.off()
+
+print(ani.hm)
+```
+
+![image](/images/ani.png)
+
+## Compare dDDH values between the Ehrlichia genomes
+
+### Calculate dDDH values using the online webservice http://ggdc.dsmz.de/
+
+##### Inputs
+```{bash, eval = F}
+FASTA_DIR="$WORKING_DIR"/references/
+OUTPUT_DIR="$WORKING_DIR"/dddh
+```
+
+##### Commands
+```{bash, eval = F}
+for FASTA1 in $(find "$FASTA_DIR" -name "*.fna")
+do
+  for FASTA2 in $(find "$FASTA_DIR" -name "*.fna")
+  do
+    "$JAVA_BIN_DIR"/java -jar "$ORTHOANITOOL_BIN_DIR"/OAT_cmd.jar -blastplus_dir "$NCBIBLAST_BIN_DIR" -method ggdc -fasta1 "$FASTA1" -fasta2 "$FASTA2" > "$OUTPUT_DIR"/"$(basename "$FASTA1" | sed "s/[.]fna//g")"_"$(basename "$FASTA2" | sed "s/[.]fna//g")".ggdc
+  done
+done
+```
+
+### Manually construct dDDH sequence identity matrix
+
+### Plot heatmap for dDDH analysis
+
+#### Set R inputs
+```{R}
+WORKING.DIR <- "Z:/EBMAL/mchung_dir/ehrlichia_hf/"
+DDDH_OUTPUT.PATH <- "Z:/EBMAL/mchung_dir/ehrlichia_hf/dddh/dddh.tsv"
+```
+
+#### Load R functions
+```{R}
+formalize_sample_names <- function(x){
+  x <- gsub("NZ_CP007474.1", "Ehrlichia sp. HF", x)
+  x <- gsub("NC_007799.1", "E. chaffeensis Arkansas", x)
+  x <- gsub("NC_023063.1", "E. muris AS145", x)
+  x <- gsub("LANU01000000", "E. muris subsp. eauclairensis Wisconsin", x)
+  x <- gsub("NC_007354.1", "E. canis Jake", x)
+  x <- gsub("NC_005295.2", "E. ruminantium Welgevonden", x)
+  x <- gsub("NC_006831.1", "E. ruminantium Gardel", x)
+}
+```
+
+#### Load R packages and view sessionInfo
+
+```{R}
+require(Biostrings)
+require(ggplot2)
+require(pvclust)
+require(reshape)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.0 (2018-04-23)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 18362)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] reshape_0.8.8       Biostrings_2.50.2   XVector_0.22.0      IRanges_2.16.0      S4Vectors_0.20.1    BiocGenerics_0.28.0
+ [7] RCurl_1.95-4.12     bitops_1.0-6        pvclust_2.0-0       gridExtra_2.3       ggplot2_3.2.0       gplots_3.0.1.1     
+[13] edgeR_3.24.3        limma_3.38.3        dendextend_1.12.0  
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.2         plyr_1.8.4         pillar_1.4.2       compiler_3.5.0     zlibbioc_1.28.0    viridis_0.5.1      tools_3.5.0       
+ [8] digest_0.6.20      tibble_2.1.3       gtable_0.3.0       viridisLite_0.3.0  lattice_0.20-35    pkgconfig_2.0.2    rlang_0.4.0       
+[15] rstudioapi_0.10    yaml_2.2.0         xfun_0.8           withr_2.1.2        dplyr_0.8.3        knitr_1.23         gtools_3.8.1      
+[22] caTools_1.17.1.2   locfit_1.5-9.1     grid_3.5.0         tidyselect_0.2.5   glue_1.3.1         R6_2.4.0           gdata_2.18.0      
+[29] purrr_0.3.2        magrittr_1.5       splines_3.5.0      scales_1.0.0       assertthat_0.2.1   colorspace_1.4-1   labeling_0.3      
+[36] KernSmooth_2.23-15 lazyeval_0.2.2     munsell_0.5.0      crayon_1.3.4
+```
+
+#### Construct dDDH sequence identity matrix
+
+```{R}
+sim <- read.delim(DDDH_OUTPUT.PATH, header = F, row.names = 1)
+colnames(sim) <- rownames(sim)
+```
+
+#### Set row and column order
+
+```{R}
+rownames(sim) <- formalize_sample_names(rownames(sim))
+colnames(sim) <- formalize_sample_names(colnames(sim))
+
+# levels <- pvclust(sim, nboot=5)
+# levels <- rownames(sim)[levels$hclust$order]
+levels <- c("E. ruminantium Welgevonden","E. ruminantium Gardel","E. canis Jake","E. chaffeensis Arkansas","Ehrlichia sp. HF", "E. muris AS145",    "E. muris subsp. eauclairensis Wisconsin")
+```
+
+#### Plot dDDH heatmap
+
+```{R, fig.height=5,fig.width=6}
+sim <- sim[match(levels,rownames(sim)),match(levels,colnames(sim))]
+sim[lower.tri(sim)] <- NA
+
+plot.df <- as.data.frame(cbind(rownames(sim),
+                               sim))
+names(plot.df)[1] <- "temp"
+plot.df <- melt(plot.df,id.vars="temp", na.rm=T)
+colnames(plot.df) <- c("Var1", "Var2", "value")
+plot.df$Var1 <- factor(plot.df$Var1, levels=levels)
+plot.df$Var2 <- factor(plot.df$Var2, levels=rev(levels))
+
+dddh.hm <- ggplot(data = plot.df, aes(Var1, Var2, fill = value))+
+  geom_tile(color = "black")+
+  geom_text(aes(label = ifelse(value>=0, round(value, 1), "")), size = 3)+
+  scale_fill_gradientn(colors = colorRampPalette(c("blue","darkturquoise","darkgreen","green","yellow","red"))(11),
+                       limits=c(20,100))+
+  theme_minimal()+
+  labs(x="",y="",fill="dDDH")+
+  #guides(fill = F)+
+  theme(axis.text.x = element_text(angle = 90,vjust = 0.5, hjust = 1,size=8),
+        axis.text.y = element_text(size=8),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+pdf(paste0(WORKING.DIR,"/plots/dddh.pdf"),
+    height=5,
+    width=6)
+print(dddh.hm)
+dev.off()
+
+png(paste0(WORKING.DIR,"/plots/dddh.png"),
+    height=5,
+    width=6,
+    units = "in",res=300)
+print(dddh.hm)
+dev.off()
+
+print(dddh.hm)
+```
+
+![image](/images/dddh.png)
+
+## Compare CGASI values between the Ehrlichia genomes
+
+### Conduct core genome alignment using Mugsy
+
+##### Inputs
+```{bash, eval = F}
+FASTA_DIR="$WORKING_DIR"/references/
+OUTPUT_DIR="$WORKING_DIR"/cgasi/
+```
+
+##### Commands
+```{bash, eval = F}
+source "$MUGSY_BIN_DIR"/mugsyenv.sh
+"$MUGSY_BIN_DIR"/mugsy --prefix mugsy --directory "$OUTPUT_DIR" $(find "$FASTA_DIR" -name "*[.]fna")
+```
+
+### Constructs core genome alignment fasta using only LCBs found in all genomes
+
+##### Inputs
+```{bash, eval = F}
+ACCESSIONS_LIST="$WORKING_DIR"/accessions.list
+MUGSY_OUTPUT_DIR="$WORKING_DIR"/cgasi/
+```
+
+##### Commands
+```{bash, eval = F}
+mkdir "$MUGSY_OUTPUT_DIR"/processed/
+rm "$MUGSY_OUTPUT_DIR"/processed/*
+while read LINE
+do
+  echo ">"$LINE"" > "$MUGSY_OUTPUT_DIR"/processed/"$(echo "$LINE" | sed "s/.[.1-9]$//g")".fna
+done < "$ACCESSIONS_LIST"
+
+while read LINE
+do
+  MARKER=$(echo "$LINE" | awk -F " " '{print $1}')
+  if [ "$MARKER" = "a" ]
+  then
+    MULT=$(echo "$LINE" | awk -F " " '{print $4}')
+  else
+    if [ "$MULT" = "mult="$(wc -l "$ACCESSIONS_LIST" | awk '{print $1}')"" ]
+    then
+      SPECIES=$(echo "$LINE" | awk -F " " '{print $2}' | sed "s/[.].*//g")
+      echo "$LINE" | awk -F " " '{print $7}' >> "$MUGSY_OUTPUT_DIR"/processed/"$SPECIES".fna
+    fi
+  fi
+done < "$MUGSY_OUTPUT_DIR"/mugsy.maf
+```
+
+### Removes all positions not present in all genomes used for core genome construction
+
+##### Inputs
+```{bash, eval = F}
+MUGSY_OUTPUT_DIR="$WORKING_DIR"/cgasi/
+```
+
+##### Commands
+```{bash, eval = F}
+cat "$MUGSY_OUTPUT_DIR"/processed/* > "$MUGSY_OUTPUT_DIR"/concat.fasta
+"$MOTHUR_BIN_DIR"/mothur #filter.seqs(fasta="$MUGSY_OUTPUT_DIR"/concat.fasta, vertical=F, trump=-)
+"$MOTHUR_BIN_DIR"/mothur "#filter.seqs(fasta="$MUGSY_OUTPUT_DIR"/concat.filter.fasta, vertical=F, trump=.)"
+mv "$MUGSY_OUTPUT_DIR"/concat.filter.filter.fasta "$MUGSY_OUTPUT_DIR"/concat_alignment.fna
+```
+
+### Plot heatmap for CGASI analysis
+
+Core genome alignment is 530,738 bp long.
+
+#### Set R inputs
+```{R}
+WORKING.DIR <- "Z:/EBMAL/mchung_dir/ehrlichia_hf/"
+CONCAT_ALIGNMENT.PATH <- "Z:/EBMAL/mchung_dir/ehrlichia_hf/cgasi/concat_alignment.fna"
+```
+
+#### Load R functions
+```{R}
+formalize_sample_names <- function(x){
+  x <- gsub("NZ_CP007474.1", "Ehrlichia sp. HF", x)
+  x <- gsub("NC_007799.1", "E. chaffeensis Arkansas", x)
+  x <- gsub("NC_023063.1", "E. muris AS145", x)
+  x <- gsub("LANU01000000", "E. muris subsp. eauclairensis Wisconsin", x)
+  x <- gsub("NC_007354.1", "E. canis Jake", x)
+  x <- gsub("NC_005295.2", "E. ruminantium Welgevonden", x)
+  x <- gsub("NC_006831.1", "E. ruminantium Gardel", x)
+}
+```
+
+#### Load R packages and view sessionInfo
+```{R}
+require(Biostrings)
+require(ggplot2)
+require(pvclust)
+require(reshape)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.0 (2018-04-23)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 18362)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] reshape_0.8.8       Biostrings_2.50.2   XVector_0.22.0      IRanges_2.16.0      S4Vectors_0.20.1    BiocGenerics_0.28.0
+ [7] RCurl_1.95-4.12     bitops_1.0-6        pvclust_2.0-0       gridExtra_2.3       ggplot2_3.2.0       gplots_3.0.1.1     
+[13] edgeR_3.24.3        limma_3.38.3        dendextend_1.12.0  
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.2         plyr_1.8.4         pillar_1.4.2       compiler_3.5.0     zlibbioc_1.28.0    viridis_0.5.1      tools_3.5.0       
+ [8] digest_0.6.20      tibble_2.1.3       gtable_0.3.0       viridisLite_0.3.0  lattice_0.20-35    pkgconfig_2.0.2    rlang_0.4.0       
+[15] rstudioapi_0.10    yaml_2.2.0         xfun_0.8           withr_2.1.2        dplyr_0.8.3        knitr_1.23         gtools_3.8.1      
+[22] caTools_1.17.1.2   locfit_1.5-9.1     grid_3.5.0         tidyselect_0.2.5   glue_1.3.1         R6_2.4.0           gdata_2.18.0      
+[29] purrr_0.3.2        magrittr_1.5       splines_3.5.0      scales_1.0.0       assertthat_0.2.1   colorspace_1.4-1   labeling_0.3      
+[36] KernSmooth_2.23-15 lazyeval_0.2.2     munsell_0.5.0      crayon_1.3.4
+```
+
+#### Construct CGASI sequence identity matrix
+
+```{R}
+concat.alignment <- readDNAMultipleAlignment(CONCAT_ALIGNMENT.PATH)
+
+sim <- as.data.frame(matrix(nrow = length(concat.alignment@unmasked),
+                            ncol = length(concat.alignment@unmasked)))
+rownames(sim) <- names(concat.alignment@unmasked)
+colnames(sim) <- names(concat.alignment@unmasked)
+
+for(i in 1:nrow(sim)){
+  j <- 1
+  while(j <= i){
+    palign <- PairwiseAlignments(c(concat.alignment@unmasked[i],concat.alignment@unmasked[j]))
+    sim[i,j] <- pid(palign,type="PID4")
+    j <- j+1
+  }
+}
+
+for(i in 1:nrow(sim)){
+  sim[i,] <- t(sim[,i])
+}
+```
+
+#### Set row and column order
+
+```{R}
+rownames(sim) <- formalize_sample_names(rownames(sim))
+colnames(sim) <- formalize_sample_names(colnames(sim))
+
+levels <- pvclust(sim, nboot=5)
+levels <- rownames(sim)[levels$hclust$order]
+```
+
+#### Plot CGASI heatmap
+
+```{R, fig.height=5,fig.width=6}
+sim <- sim[match(levels,rownames(sim)),match(levels,colnames(sim))]
+sim[lower.tri(sim)] <- NA
+
+plot.df <- as.data.frame(cbind(rownames(sim),
+                               sim))
+names(plot.df)[1] <- "temp"
+plot.df <- melt(plot.df,id.vars="temp", na.rm=T)
+colnames(plot.df) <- c("Var1", "Var2", "value")
+plot.df$Var1 <- factor(plot.df$Var1, levels=levels)
+plot.df$Var2 <- factor(plot.df$Var2, levels=rev(levels))
+
+cgasi.hm <- ggplot(data = plot.df, aes(Var1, Var2, fill = value))+
+  geom_tile(color = "black")+
+  geom_text(aes(label = ifelse(value>=0, round(value, 1), "")), size = 3)+
+  scale_fill_gradientn(colors = colorRampPalette(c("blue","darkturquoise","darkgreen","green","yellow","red"))(11),
+                       limits=c(80,100))+
+  theme_minimal()+
+  labs(x="",y="",fill="CGASI")+
+  #guides(fill = F)+
+  theme(axis.text.x = element_text(angle = 90,vjust = 0.5, hjust = 1,size=8),
+        axis.text.y = element_text(size=8),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+pdf(paste0(WORKING.DIR,"/plots/cgasi.pdf"),
+    height=5,
+    width=6)
+print(cgasi.hm)
+dev.off()
+
+png(paste0(WORKING.DIR,"/plots/cgasi.png"),
+    height=5,
+    width=6,
+    units = "in",res=300)
+print(cgasi.hm)
+dev.off()
+
+print(cgasi.hm)
+```
+
+![image](/images/cgasi.png)
+
+### Plot tree from core genome alignment using IQTree
+
+##### Inputs
+```{bash, eval = F}
+THREADS=4
+MSA_FNA="$WORKING_DIR"/cgasi//concat_alignment.fna
+```
+
+##### Commands
+```{bash, eval = F}
+"$IQTREE_BIN_DIR"/iqtree -s "$MSA_FNA" -nt "$THREADS" -bb 1000 -redo
+```
 
 # Identify differentially expressed genes between HF conditions
 
