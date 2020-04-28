@@ -709,8 +709,8 @@ PECHA_DH82_mRNA1 PECHA_DH82_mRNA2 PECHA_DH82_mRNA3
   PECHA_HF_mRNA1   PECHA_HF_mRNA2   PECHA_HF_mRNA3
          1748842          1136319          1523891
 ```
-#### Create TPM data frame
 
+#### Create TPM data frame
 ```{R}
 genelength <- read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))
 genelength <- genelength[match(rownames(counts),genelength[,1]),2]
@@ -761,6 +761,16 @@ FDR <- as.data.frame(p.adjust(qlf$table$PValue, method="BH"))
 rownames(FDR) <- rownames(qlf$table)
 FDR.genes <- rownames(FDR[FDR[,1] < FDRcutoff, , drop = F])
 print(paste0(length(FDR.genes)," DE genes identified using edgeR pairwise" ))
+
+qlf$table <- as.data.frame(cbind(qlf$table,
+                                 FDR))
+colnames(qlf$table)[5] <- "FDR"
+write.table(qlf$table[qlf$table$FDR < 0.05,],
+            paste0(WORKING.DIR,"/canine_de_logFC.tsv"),
+            col.names = T,
+            row.names = T,
+            quote = F,
+            sep = "\t")
 ```
 
 ```{R, eval = F}
@@ -972,6 +982,16 @@ print(paste0(length(FDR.genes)," DE genes identified using edgeR pairwise" ))
 
 print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] > 0) == T)," genes significantly upregulated in ",groups[1,4]))
 print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] < 0) == T)," genes significantly downregulated in ",groups[1,4]))
+
+qlf$table <- as.data.frame(cbind(qlf$table,
+                                 FDR))
+colnames(qlf$table)[5] <- "FDR"
+write.table(qlf$table[qlf$table$FDR < 0.05,],
+            paste0(WORKING.DIR,"/tick_de_logFC.tsv"),
+            col.names = T,
+            row.names = T,
+            quote = F,
+            sep = "\t")
 ```
 
 ```{R, eval = F}
