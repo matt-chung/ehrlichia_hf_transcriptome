@@ -778,6 +778,7 @@ write.table(qlf$table[qlf$table$FDR < 0.05,],
 [1] "2 DE genes identified using edgeR pairwise
 ```
 
+
 ## Tick
 
 ### Set R inputs
@@ -960,6 +961,8 @@ groups[,4] <- factor(groups[,4], levels = unique(groups[,4]))
 edgeR and DESeq2 are both run with a FDR cutoff of <0.05 and a minimum CPM cutoff of 5 reads in the lowest sequenced sample in the data set.  
 
 ```{R}
+geneinfo <- read.delim(GENEINFO.PATH)
+
 FDRcutoff <- 0.05
 cpm.cutoff <- 5/min(colSums(counts)) * 1000000
 
@@ -984,8 +987,11 @@ print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] > 0) =
 print(paste0(length(which(qlf$table[rownames(qlf$table) %in% FDR.genes,1] < 0) == T)," genes significantly downregulated in ",groups[1,4]))
 
 qlf$table <- as.data.frame(cbind(qlf$table,
-                                 FDR))
+                                 FDR,
+                                 geneinfo[match(rownames(qlf$table),geneinfo[,1]),2:5]))
 colnames(qlf$table)[5] <- "FDR"
+
+
 write.table(qlf$table[qlf$table$FDR < 0.05,],
             paste0(WORKING.DIR,"/tick_de_logFC.tsv"),
             col.names = T,
@@ -1108,8 +1114,6 @@ heatmap.2(as.matrix(heatmap.df),
 ### Conduct functional term enrichment analysis on up- and down-regulated gene subsets
 
 ```{R}
-geneinfo <- read.delim(GENEINFO.PATH)
-
 terms.pairwise.up <- as.data.frame(cbind(functionaltermenrichment(rownames(qlf$table)[qlf$table[,1] > 0],geneinfo),
                                          "upregulated"))
 terms.pairwise.down <- as.data.frame(cbind(functionaltermenrichment(rownames(qlf$table)[qlf$table[,1] < 0],geneinfo),
